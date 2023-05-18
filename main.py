@@ -16,6 +16,14 @@ headers = {
     'Content-Type': 'application/json'
 }
 
+# Specify the file to modify and the strings to replace
+file_to_modify = 'Dockerfile'
+strings_to_replace = {
+    'old_string1': 'new_string1',
+    'old_string2': 'new_string2'
+    # Add more strings to replace as needed
+}
+
 for project in projects:
     # Get the list of repos in the project
     url = f'https://dev.azure.com/{organization}/{project}/_apis/git/repositories?api-version=6.0'
@@ -37,17 +45,21 @@ for project in projects:
             print(f'\nCloning {repo_name}...')
             os.system(f'git clone {clone_url}')
 
-            # Make a modification to the Dockerfile
-            print(f'Modifying Dockerfile in {repo_name}...')
-            with open(f'{repo_name}/Dockerfile', 'a') as f:
-                f.write('\n# This is a modification\n')
+            # Make modifications to the specified file
+            print(f'Modifying {file_to_modify} in {repo_name}...')
+            with open(f'{repo_name}/{file_to_modify}', 'r+') as f:
+                file_contents = f.read()
+                for old_string, new_string in strings_to_replace.items():
+                    file_contents = file_contents.replace(old_string, new_string)
+                f.seek(0)
+                f.write(file_contents)
 
             # Use git to commit the change and push it to a new branch
             print(f'Committing changes and pushing to new branch in {repo_name}...')
             repo = git.Repo(repo_name)
             repo.git.checkout('HEAD', b='new_branch')
             repo.git.add('--all')
-            repo.git.commit('-m', 'Modified Dockerfile')
+            repo.git.commit('-m', f'Modified {file_to_modify}')
             repo.git.push('origin', 'new_branch')
 
             # Create a pull request
@@ -56,18 +68,17 @@ for project in projects:
             data = {
                 "sourceRefName": "refs/heads/new_branch",
                 "targetRefName": "refs/heads/main",
-                "title": "Modification to Dockerfile",
-                "description": "This is a modification to the Dockerfile.",
+                "title": f"Modification to {file_to_modify}",
+                "description": f"This is a modification to the {file_to_modify}.",
             }
             response = requests.post(url, headers=headers, json=data)
 
             if response.status_code != 200:
                 print(f'Failed to create a pull request for {repo_name}')
             else:
-                print(f'Successfully created a pull request for {repo_name}')
+                print(f'Successfullycreated a pull request for {repo_name}')
 
-            # Delete the cloned repo from local machine
-            print(f'Deleting cloned repo {repo_name}...')
+            # Clean up the cloned repo
             shutil.rmtree(repo_name)
 
             # Update the progress bar
