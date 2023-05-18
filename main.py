@@ -45,14 +45,17 @@ for project in projects:
             print(f'\nCloning {repo_name}...')
             os.system(f'git clone {clone_url}')
 
-            # Make modifications to the specified file
-            print(f'Modifying {file_to_modify} in {repo_name}...')
-            with open(f'{repo_name}/{file_to_modify}', 'r+') as f:
-                file_contents = f.read()
-                for old_string, new_string in strings_to_replace.items():
-                    file_contents = file_contents.replace(old_string, new_string)
-                f.seek(0)
-                f.write(file_contents)
+            # Perform a recursive search through each directory in the repository
+            for root, dirs, files in os.walk(repo_name):
+                if file_to_modify in files:
+                    # Make modifications to the specified file
+                    print(f'Modifying {file_to_modify} in {root}...')
+                    with open(os.path.join(root, file_to_modify), 'r+') as f:
+                        file_contents = f.read()
+                        for old_string, new_string in strings_to_replace.items():
+                            file_contents = file_contents.replace(old_string, new_string)
+                        f.seek(0)
+                        f.write(file_contents)
 
             # Use git to commit the change and push it to a new branch
             print(f'Committing changes and pushing to new branch in {repo_name}...')
